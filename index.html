@@ -1,82 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Catalog Electronic</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f0f0;
-      padding: 20px;
-    }
-    #login, #catalog {
-      max-width: 400px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-    }
-    #catalog {
-      display: none;
-    }
-    .elev {
-      background: #dfeaff;
-      padding: 10px;
-      border-radius: 8px;
-      margin-top: 10px;
-    }
-    .nume {
-      font-size: 20px;
-      font-weight: bold;
-    }
-    .note {
-      font-size: 18px;
-      margin-top: 5px;
-    }
-    button {
-      padding: 8px 12px;
-      margin-top: 10px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Catalog Electronic</title>
+<style>
+body {
+  font-family: Arial;
+  background: #f0f0f0;
+  padding: 20px;
+}
+.card {
+  background: white;
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 8px;
+  box-shadow: 0 0 5px #999;
+}
+input {
+  padding: 8px;
+  width: 200px;
+  margin-bottom: 10px;
+}
+button {
+  padding: 8px 15px;
+  margin: 5px;
+}
+#catalog {
+  display: none;
+}
+</style>
 </head>
 <body>
 
-<h2 style="text-align:center;">Catalog Electronic</h2>
+<h2>Autentificare</h2>
 
-<div id="login">
-  <h3>Autentificare</h3>
-  <input id="email" type="email" placeholder="Email"><br><br>
-  <input id="parola" type="password" placeholder="Parola"><br><br>
-  <button onclick="login()">Login</button>
-  <button onclick="register()">Creare cont</button>
-</div>
+<input id="email" type="text" placeholder="Email"><br>
+<input id="parola" type="password" placeholder="Parola"><br>
+
+<button id="creareCont">Creează cont</button>
+<button id="login">Login</button>
+
+<hr>
 
 <div id="catalog">
-  <h3>Bine ai venit!</h3>
+  <h2>Catalog Electronic</h2>
 
   <input id="numeElev" type="text" placeholder="Nume elev">
-  <button onclick="adaugaElev()">Adaugă elev</button>
+  <button id="adaugaElev">Adaugă elev</button>
 
   <div id="listaElevi"></div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  updateDoc,
-  doc,
-  arrayUnion
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  doc, 
+  updateDoc 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDczzjsm4VfeFUsp9WqcJddWYft3FszuUg",
@@ -85,79 +74,82 @@ const firebaseConfig = {
   storageBucket: "catalog-electronic-77e65.firebasestorage.app",
   messagingSenderId: "547225702750",
   appId: "1:547225702750:web:ef080684fae177a279ffcf",
-  measurementId: "G-YVYFK9JDDC"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// CREARE CONT
+document.getElementById("creareCont").onclick = () => {
+  const email = document.getElementById("email").value;
+  const parola = document.getElementById("parola").value;
+
+  createUserWithEmailAndPassword(auth, email, parola)
+    .then(() => alert("Cont creat!"))
+    .catch(e => alert("Eroare: " + e.message));
+};
+
 // LOGIN
-window.login = function () {
-  signInWithEmailAndPassword(auth, email.value, parola.value)
+document.getElementById("login").onclick = () => {
+  const email = document.getElementById("email").value;
+  const parola = document.getElementById("parola").value;
+
+  signInWithEmailAndPassword(auth, email, parola)
+    .then(() => {
+      alert("Logare reușită!");
+      document.getElementById("catalog").style.display = "block";
+      incarcaElevi();
+    })
     .catch(e => alert("Eroare: " + e.message));
 };
-
-// REGISTER
-window.register = function () {
-  createUserWithEmailAndPassword(auth, email.value, parola.value)
-    .catch(e => alert("Eroare: " + e.message));
-};
-
-// UTILIZATOR AUTENTIFICAT
-onAuthStateChanged(auth, user => {
-  if (user) {
-    login.style.display = "none";
-    catalog.style.display = "block";
-    incarcaElevi();
-  }
-});
 
 // ADAUGĂ ELEV
-window.adaugaElev = async function () {
-  const nume = numeElev.value;
-
-  if (!nume) return alert("Scrie un nume!");
+document.getElementById("adaugaElev").onclick = async () => {
+  const nume = document.getElementById("numeElev").value;
 
   await addDoc(collection(db, "elevi"), {
     nume: nume,
     note: []
   });
 
-  numeElev.value = "";
+  alert("Elev adăugat!");
+  incarcaElevi();
 };
 
-// ÎNCARCĂ ELEVII ÎN TIMP REAL
-function incarcaElevi() {
-  onSnapshot(collection(db, "elevi"), (snapshot) => {
-    listaElevi.innerHTML = "";
-    snapshot.forEach(docElev => {
-      const elev = docElev.data();
-      const id = docElev.id;
+// ÎNCARCĂ ELEVII
+async function incarcaElevi() {
+  const lista = document.getElementById("listaElevi");
+  lista.innerHTML = "";
 
-      const div = document.createElement("div");
-      div.className = "elev";
-      div.innerHTML = `
-        <div class="nume">${elev.nume}</div>
-        <div class="note">Note: ${elev.note.join(", ")}</div>
-        <button onclick="adaugaNota('${id}')">Adaugă notă</button>
-      `;
-      listaElevi.appendChild(div);
-    });
+  const snapshot = await getDocs(collection(db, "elevi"));
+  snapshot.forEach(docSnap => {
+    const elev = docSnap.data();
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <b>${elev.nume}</b><br>
+      Note: ${elev.note.join(", ")}<br>
+      <button onclick="adaugaNota('${docSnap.id}')">Adaugă notă</button>
+    `;
+    lista.appendChild(card);
   });
 }
 
-// ADAUGĂ NOTĂ
-window.adaugaNota = async function (id) {
-  const nota = prompt("Scrie nota (1-10):");
-  const nr = Number(nota);
+window.adaugaNota = async function(id) {
+  const nota = prompt("Introdu o notă între 1 și 10:");
+  if (!nota) return;
 
-  if (nr < 1 || nr > 10) return alert("Nota trebuie să fie între 1 și 10");
-
-  const elevRef = doc(db, "elevi", id);
-
-  await updateDoc(elevRef, {
-    note: arrayUnion(nr)
+  const ref = doc(db, "elevi", id);
+  const snapshot = await getDocs(collection(db, "elevi"));
+  
+  snapshot.forEach(async docSnap => {
+    if (docSnap.id === id) {
+      const elev = docSnap.data();
+      elev.note.push(Number(nota));
+      await updateDoc(ref, { note: elev.note });
+      incarcaElevi();
+    }
   });
 };
 </script>
